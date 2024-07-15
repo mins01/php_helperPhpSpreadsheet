@@ -3,7 +3,7 @@
  * 엑셀 다운로드
  * phpspreadsheet 사용
  */
-function downloadXlsx($fn=null,$conf=null,$rows=null,$headers=null,$footers=null){
+function downloadXlsx($fn=null,$conf=null,$body=null,$header=null,$footer=null){
 
     if(!isset($fn[0])) $fn = '엑셀다운로드';
 
@@ -41,13 +41,12 @@ function downloadXlsx($fn=null,$conf=null,$rows=null,$headers=null,$footers=null
         'fill'=>[
             'fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
             'color' => array('rgb' => 'C6EFCE'),
-
         ]
     ];
 
-    $styleHeaders = $styleCenterCenter+$styleAllBorders+$styleHeadFill;
+    $styleHeader = $styleCenterCenter+$styleAllBorders+$styleHeadFill;
     $styleRows = $styleAllBorders;
-    $styleFooters = $styleAllBorders+$styleBoldRed;
+    $styleFooter = $styleAllBorders+$styleBoldRed;
     
 
     $spreadsheet = new PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -70,8 +69,9 @@ function downloadXlsx($fn=null,$conf=null,$rows=null,$headers=null,$footers=null
     // $sheet->setCellValue('A1', '테스트입니다.');
 
     //--- column 설정
-    if(isset($conf['columns'])){
-        foreach($conf['columns'] as $k => $column){
+    $cf = $conf['sheet']??null;
+    if(isset($cf['columns'])){
+        foreach($cf['columns'] as $k => $column){
             $cIdx = $k+1; //column idx
             if(isset($column['width'])){
                 if($column['width'] =='auto'){
@@ -86,34 +86,74 @@ function downloadXlsx($fn=null,$conf=null,$rows=null,$headers=null,$footers=null
 
 
     $rIdx = 1; // row idx
-    if(isset($headers[0][0])){
-        $d = & $headers;
+    if(isset($header[0][0])){
+        $d = & $header;
         $firstCellCoord = 'A'.$rIdx;
         $sheet->fromArray($d,null,'A'.$rIdx);
         $rIdx+= count($d);
         $lastColAlpha = $sheet->getHighestColumn($rIdx-1);
         $lastCellCoord = $lastColAlpha.($rIdx-1);
-        $sheet->getStyle("{$firstCellCoord}:{$lastCellCoord}")->applyFromArray($styleHeaders);
+        $sheet->getStyle("{$firstCellCoord}:{$lastCellCoord}")->applyFromArray($styleHeader);
+        //-- 스타일
+        $cf = $conf['header']??null;
+        if($cf && isset($cf['columns'])){
+            foreach($cf['columns'] as $k => $column ){
+                if(!isset($column)) continue;
+                $alpha = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($k+1);
+                $colCoord = $alpha.($rIdx - count($d)).':'.$alpha.($rIdx - 1);
+                if(isset($column['style'])){
+                    $sheet->getStyle($colCoord)->applyFromArray($column['style']);
+                }
+            }
+        }
+
         unset($d);
     }
-    if(isset($rows[0][0])){
-        $d = & $rows;
+    if(isset($body[0][0])){
+        //-- 값
+        $d = & $body;
         $firstCellCoord = 'A'.$rIdx;
         $sheet->fromArray($d,null,'A'.$rIdx);
         $rIdx+= count($d);
         $lastColAlpha = $sheet->getHighestColumn($rIdx-1);
         $lastCellCoord = $lastColAlpha.($rIdx-1);
         $sheet->getStyle("{$firstCellCoord}:{$lastCellCoord}")->applyFromArray($styleRows);
+        //-- 스타일
+        $cf = $conf['body']??null;
+        if($cf && isset($cf['columns'])){
+            foreach($cf['columns'] as $k => $column ){
+                if(!isset($column)) continue;
+                $alpha = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($k+1);
+                $colCoord = $alpha.($rIdx - count($d)).':'.$alpha.($rIdx - 1);
+                if(isset($column['style'])){
+                    $sheet->getStyle($colCoord)->applyFromArray($column['style']);
+                }
+            }
+        }
+
         unset($d);
+        
     }
-    if(isset($footers[0][0])){
-        $d = & $footers;
+    if(isset($footer[0][0])){
+        $d = & $footer;
         $firstCellCoord = 'A'.$rIdx;
         $sheet->fromArray($d,null,'A'.$rIdx);
         $rIdx+= count($d);
         $lastColAlpha = $sheet->getHighestColumn($rIdx-1);
         $lastCellCoord = $lastColAlpha.($rIdx-1);
-        $sheet->getStyle("{$firstCellCoord}:{$lastCellCoord}")->applyFromArray($styleFooters);
+        $sheet->getStyle("{$firstCellCoord}:{$lastCellCoord}")->applyFromArray($styleFooter);
+        //-- 스타일
+        $cf = $conf['footer']??null;
+        if($cf && isset($cf['columns'])){
+            foreach($cf['columns'] as $k => $column ){
+                if(!isset($column)) continue;
+                $alpha = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($k+1);
+                $colCoord = $alpha.($rIdx - count($d)).':'.$alpha.($rIdx - 1);
+                if(isset($column['style'])){
+                    $sheet->getStyle($colCoord)->applyFromArray($column['style']);
+                }
+            }
+        }
         unset($d);
     }
     $sheet->setSelectedCell('A1');
